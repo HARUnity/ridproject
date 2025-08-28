@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Republik Indonesia Digital</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #181a1b;
+      overflow-x: hidden;
+    }
+    .bg-anim {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.25;
+    }
+    .main-content {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .brand-icon {
+      font-size: 4rem;
+      color: #0dcaf0;
+      margin-bottom: 1rem;
+      filter: drop-shadow(0 0 10px #0dcaf0aa);
+    }
+    .btn-custom {
+      background: linear-gradient(90deg, #0dcaf0 0%, #6610f2 100%);
+      border: none;
+      color: #fff;
+      font-weight: bold;
+      box-shadow: 0 2px 16px #0dcaf055;
+    }
+    .btn-custom:hover {
+      background: linear-gradient(90deg, #6610f2 0%, #0dcaf0 100%);
+      color: #fff;
+    }
+    /* Responsive text */
+    @media (max-width: 600px) {
+      .display-3 { font-size: 2.2rem; }
+      .lead { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Futuristic constellation background (SVG + JS for animation) -->
+  <svg id="constellation-bg" class="bg-anim" viewBox="0 0 1200 800" fill="none"></svg>
+  <script>
+    // --- Constellation Animation ---
+    const svg = document.getElementById('constellation-bg');
+    const width = 1200, height = 800;
+    const POINTS = 36; //18
+    const RADIUS = 450;//250
+    const CENTER = { x: 600, y: 420 };
+    const DOT_MIN = 2, DOT_MAX = 5;
+    const SPEED = 0.6 + Math.random() * 0.4;
+
+    // Generate points in a "Bali" silhouette area (approximate ellipse)
+    let stars = [];
+    for (let i = 0; i < POINTS; i++) {
+      const angle = (Math.PI * 2 * i) / POINTS + Math.random() * 0.2;
+      const rx = RADIUS * (0.8 + Math.random() * 0.4);
+      const ry = RADIUS * (0.5 + Math.random() * 0.7);
+      stars.push({
+        base: {
+          x: CENTER.x + Math.cos(angle) * rx,
+          y: CENTER.y + Math.sin(angle) * ry
+        },
+        phase: Math.random() * Math.PI * 2,
+        r: DOT_MIN + Math.random() * (DOT_MAX - DOT_MIN)
+      });
+    }
+
+    // Connect each star to its 2 nearest neighbors
+    function getLinks(stars) {
+      let links = [];
+      for (let i = 0; i < stars.length; i++) {
+        let dists = [];
+        for (let j = 0; j < stars.length; j++) {
+          if (i !== j) {
+            const dx = stars[i].base.x - stars[j].base.x;
+            const dy = stars[i].base.y - stars[j].base.y;
+            dists.push({ j, dist: dx * dx + dy * dy });
+          }
+        }
+        dists.sort((a, b) => a.dist - b.dist);
+        links.push([i, dists[0].j]);
+        links.push([i, dists[1].j]);
+      }
+      // Remove duplicate links
+      const unique = {};
+      links.forEach(([a, b]) => {
+        const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+        unique[key] = [a, b];
+      });
+      return Object.values(unique);
+    }
+    const links = getLinks(stars);
+
+    // Animation loop
+    function animate() {
+      svg.innerHTML = '';
+      const t = Date.now() * 0.001 * SPEED;
+      // Animate stars in/out with a subtle orbit
+      const animStars = stars.map((star, i) => {
+        const orbit = 12 + 8 * Math.sin(t + star.phase + i);
+        const angle = Math.atan2(star.base.y - CENTER.y, star.base.x - CENTER.x) + 0.15 * Math.sin(t + i);
+        return {
+          x: CENTER.x + Math.cos(angle) * (Math.hypot(star.base.x - CENTER.x, star.base.y - CENTER.y) + orbit * Math.sin(t + star.phase)),
+          y: CENTER.y + Math.sin(angle) * (Math.hypot(star.base.x - CENTER.x, star.base.y - CENTER.y) + orbit * Math.cos(t + star.phase)),
+          r: star.r + 1.5 * Math.sin(t * 1.5 + i)
+        };
+      });
+
+      // Draw links
+      links.forEach(([a, b]) => {
+        const s1 = animStars[a], s2 = animStars[b];
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', s1.x); line.setAttribute('y1', s1.y);
+        line.setAttribute('x2', s2.x); line.setAttribute('y2', s2.y);
+        line.setAttribute('stroke', '#0dcaf0');
+        line.setAttribute('stroke-width', '1.5');
+        line.setAttribute('opacity', '0.35');
+        line.setAttribute('filter', 'url(#glow)');
+        svg.appendChild(line);
+      });
+
+      // Draw stars
+      animStars.forEach((s, i) => {
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', s.x);
+        dot.setAttribute('cy', s.y);
+        dot.setAttribute('r', Math.abs(s.r));
+        dot.setAttribute('fill', i % 3 === 0 ? '#6610f2' : '#0dcaf0');
+        dot.setAttribute('opacity', '0.8');
+        dot.setAttribute('filter', 'url(#glow)');
+        svg.appendChild(dot);
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    // SVG filter for glow effect
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    defs.innerHTML = `
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    `;
+    svg.appendChild(defs);
+
+    animate();
+  </script>
+  <!-- Modal -->
+  <div class="modal fade" id="learnMoreModal" tabindex="-1" aria-labelledby="learnMoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="learnMoreModalLabel"><i class="fa-solid fa-circle-info me-2"></i>Manifesto</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            Manifesto Republik Indonesia Digital
+Preambule
+
+Kami, warga Republik Indonesia yang hidup di era digital, menyadari bahwa kemajuan teknologi membuka ruang baru bagi gotong royong, solidaritas, dan keadilan sosial.
+Ruang digital bukanlah pengganti negara, melainkan perpanjangan tangan rakyat untuk berkontribusi pada kesejahteraan bersama.
+
+Prinsip Dasar
+
+Bersatu dalam NKRI
+Republik Indonesia Digital lahir sebagai ruang maya untuk rakyat, bukan negara baru. Kami berkomitmen teguh pada Pancasila, UUD 1945, dan keutuhan NKRI.
+
+Gotong Royong Digital
+Kami percaya teknologi dapat memperkuat nilai-nilai gotong royong. Melalui platform ini, masyarakat dapat saling membantu dalam bidang ekonomi, pendidikan, kesehatan, dan sosial.
+
+Keadilan Sosial untuk Semua
+Visi kami adalah menghadirkan kesempatan yang lebih adil melalui program berbasis teknologi:
+
+literasi digital,
+
+akses pendidikan terbuka,
+
+solusi kesehatan berbasis teknologi,
+
+ekosistem ekonomi kerakyatan yang inklusif.
+
+Kedaulatan Digital Rakyat
+Warga memiliki hak untuk berpartisipasi, berpendapat, dan berkontribusi di ruang digital dengan semangat kebebasan berekspresi yang tetap sesuai hukum Indonesia.
+
+Kolaborasi, Bukan Konfrontasi
+Republik Indonesia Digital adalah mitra, bukan lawan, bagi pemerintah dan masyarakat luas. Kami hadir untuk melengkapi, mendukung, dan memperkuat upaya negara dalam mewujudkan kesejahteraan rakyat.
+
+Kecerdasan Buatan untuk Kemanusiaan
+Republik Indonesia Digital diperkuat dengan Artificial Intelligence (AI) untuk mempercepat inovasi sosial:
+
+AI sebagai asisten rakyat dalam belajar, bekerja, dan berkreasi.
+
+AI untuk memetakan kebutuhan sosial dan memberi solusi yang cepat serta inklusif.
+
+AI yang etis, transparan, dan berpihak pada kepentingan manusia.
+
+Tujuan Utama
+
+Membangun ruang digital inklusif bagi seluruh warga.
+
+Menyediakan platform partisipasi sosial untuk gotong royong lintas wilayah dan generasi.
+
+Mengembangkan ekonomi solidaritas digital yang memberdayakan masyarakat menengah ke bawah.
+
+Menghadirkan AI sebagai mitra rakyat, bukan pengganti manusia, untuk mewujudkan cita-cita bangsa.
+
+Penutup
+
+Republik Indonesia Digital adalah gerakan masyarakat sipil digital yang diperkuat oleh AI, bukan pemerintahan baru.
+Kami adalah bagian dari Indonesia, yang ingin menghadirkan semangat keadilan sosial dalam ruang digital.
+Dengan gotong royong manusia dan teknologi, kami percaya masa depan bangsa akan lebih sejahtera, adil, dan berdaya.
+          </p>
+          <!--<ul>
+            <li><b>AI & Tech Scholarship</b> worth USD 3000 (per Student) for Local/Balinese Youth between 15-19</li>
+            <li><b>Universal Basic Income</b> worth USD 300 (per Month) for Local/Balinese Families that committed to the programs.</li>
+            <li><b>Environmental & Cultural Preservation</b> initiatives and grants to protect Bali's unique heritage and cultural resources.</li>
+          </ul>
+          <p class="mb-0">Join us and be part of Bali's digital future!</p>-->
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-custom" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Attach modal trigger to Learn More button
+    document.addEventListener('DOMContentLoaded', function() {
+      const learnMoreBtn = document.querySelector('a.btn-outline-light[href="#"]');
+      if (learnMoreBtn) {
+        learnMoreBtn.setAttribute('data-bs-toggle', 'modal');
+        learnMoreBtn.setAttribute('data-bs-target', '#learnMoreModal');
+      }
+    });
+  </script>
+  <div class="modal fade" id="getStartedModal" tabindex="-1" aria-labelledby="getStartedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="getStartedModalLabel"><i class="fa-solid fa-circle-info me-2"></i>Start Platform</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            Kamu perlu memiliki aplikasi dan akun Telegram untuk mengakses platform Republik Indonesia Digital (RID). Platform ini tidak dipungut biaya alias gratis.
+          </p>
+          <p class="mb-0">Buka link Telegram RID disini</i></p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-custom" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Attach modal trigger to Get Started button
+    document.addEventListener('DOMContentLoaded', function() {
+      const getStartedBtn = document.querySelector('a.btn-custom[href="#"]');
+      if (getStartedBtn) {
+        getStartedBtn.setAttribute('data-bs-toggle', 'modal');
+        getStartedBtn.setAttribute('data-bs-target', '#getStartedModal');
+      }
+    });
+  </script>
+
+  <div class="main-content text-center container">
+    <i class="fa-solid fa-microchip brand-icon"></i>
+    <h1 class="display-3 fw-bold mb-3">Republik Indonesia Digital</h1>
+    <p class="lead mb-4">
+      Platform gerakan gotong royong rakyat berbasis AI.<br>
+      Untuk kesejahteraan dan keadilan sosial dalam bingkai NKRI.
+    </p>
+    <div class="mb-4">
+      <a href="#" class="btn btn-custom btn-lg me-2" id="btn-getStartedBtn"><i class="fa-brands fa-rocket"></i> Start Aplikasi</a>
+      <a href="#" class="btn btn-outline-light btn-lg" id="btn-learnMoreBtn"><i class="fa-solid fa-circle-info"></i> Pelajari Manifesto</a>
+    </div>
+    <div class="d-flex justify-content-center gap-4 mt-4">
+      <!--<a href="#" class="text-info fs-3"><i class="fa-brands fa-twitter"></i></a>
+      <a href="#" class="text-info fs-3"><i class="fa-brands fa-linkedin"></i></a>
+      <a href="#" class="text-info fs-3"><i class="fa-brands fa-github"></i></a>-->
+    </div>
+    <footer class="mt-5 text-secondary small">
+      &copy; 2025 Republik Digital Foundation. Hak konstitusional dilindungi UUD 1945.
+    </footer>
+  </div>
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
